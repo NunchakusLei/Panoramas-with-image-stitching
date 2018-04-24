@@ -2,10 +2,14 @@ import numpy as np
 import cv2
 from features import FeatureExtractor
 from matches import FeatureMatcher
+from cylindral import cylindricalWarpImage
+from spherical import warpSpherical
+# from multi_band_blending import multi_band_blending
 
 class Sticher:
-    def __init__(self, image_names=[]):
+    def __init__(self, image_names=[], f=3000, mode='spherical'):
         self.__images = []
+        self.__image_masks = []
         self.__features = []
         self.__image_pairs = []
         self.__start = None
@@ -14,7 +18,33 @@ class Sticher:
 
         for image_name in image_names:
             img = cv2.imread(image_name)
-            self.__images.append(img)
+
+            if mode=='cylindrical':
+                #### convert rectangler to cylindrical
+                h,w = img.shape[:2]
+                f = 800
+                K = np.array([[f, 0, w/2], [0, f, h/2], [0, 0, 1]]) # mock calibration matrix
+                cylindrical_img, cylindrical_mask = cylindricalWarpImage(img, K)
+                print("converting", image_name, "to cylindrical ... ")
+                # print("cylindrical mask dtype:", cylindrical_mask.dtype)
+                # print("cylindrical mask shape:", cylindrical_mask.shape)
+
+                self.__images.append(cylindrical_img)
+                self.__image_masks.append(cylindrical_mask)
+
+            if mode=='spherical':
+                #### convert rectangler to spherical
+                # f = 3000
+                spherical_img, spherical_mask = warpSpherical(img, f)
+                print("converting", image_name, "to spherical ... ")
+
+                self.__images.append(spherical_img)
+                self.__image_masks.append(spherical_mask)
+
+            if mode=='planner':
+                #### planner
+                self.__images.append(img)
+                self.__image_masks.append(np.ones(img.shape[:2], dtype=np.uint8)*255)
 
     def prepare_features(self):
         self.__features = []
@@ -43,6 +73,7 @@ class Sticher:
         # print(good_matrix)
 
         #### find matches amount matrix
+        print("matching features ...")
         for pre_i in range(len(self.__images)):
             for i in range(len(self.__images)):
                 if pre_i==i:
@@ -125,6 +156,7 @@ class Sticher:
         shifted_H = np.eye(3)
         last_H = np.eye(3)
         img1 = self.__images[self.__start]
+        mask1 = self.__image_masks[self.__start]
         for i in range(len(self.__image_pairs)):
             pair = self.__image_pairs[i]
             # H = np.dot(shifted_H, last_H) # ->
@@ -135,11 +167,12 @@ class Sticher:
             index2 = pair['dst_index']
             # img1 = self.__images[index1]
             img2 = self.__images[index2]
+            mask2 = self.__image_masks[index2]
 
             print("stiching image %d and image %d" % (index1,index2))
 
             # img1, shifted_H = self.mix_images(img1, img2, H) # ->
-            img1, shifted_H = self.mix_images(img2, img1, H)
+            img1, mask1, shifted_H = self.mix_images(img2, img1, mask2, mask1, H)
             # last_H = H # ->
             last_H = np.dot(last_H, shifted_H) # <-
 
@@ -171,7 +204,7 @@ class Sticher:
                     continue
 
                 # stich images
-                new_img, _ = sticher.mix_images(image, new_img, H)
+                new_img, _, _ = sticher.mix_images(image, new_img, H)
                 # new_img, _ = sticher.mix_images(new_img, image, H)
 
                 cv2.imshow("new_img", new_img)
@@ -180,16 +213,21 @@ class Sticher:
 
         return new_img
 
-    def mix_images(self, img1, img2, H):
+    def mix_images(self, img1, img2, mask1, mask2, H, type="affine"):
         """
         This function will stick img2 to img1
         """
+        if type=="affine":
+            H = np.append(H, [[0,0,1]], axis=0)
+
         h, w = img2.shape[:2]
         pts = np.float32([[0,0],
                           [0,h-1],
                           [w-1,h-1],
                           [w-1,0]]).reshape(-1,1,2)
         dst = cv2.perspectiveTransform(pts, H)
+        # print("H:", H)
+        # print("pts:", pts)
         # print("dst:", dst)
 
         h1, w1 = img1.shape[:2]
@@ -226,20 +264,37 @@ class Sticher:
         if dst[0][0][0]<0:
             # this_shift_H = np.dot(shift_H, H)
             this_shift_H = shift_H
-            new_img2 = cv2.warpPerspective(img2, np.dot(shift_H, H), new_image_size)
+            # new_img2 = cv2.warpPerspective(img2, np.dot(shift_H, H), new_image_size)
+            new_img2 = cv2.warpAffine(img2, np.dot(shift_H, H)[:2,:], new_image_size)
+            new_mask2 = cv2.warpAffine(mask2, np.dot(shift_H, H)[:2,:], new_image_size)
         else:
             this_shift_H = shift_H
-            new_img2 = cv2.warpPerspective(img2, np.dot(H, shift_H), new_image_size)
+            # new_img2 = cv2.warpPerspective(img2, np.dot(H, shift_H), new_image_size)
+            new_img2 = cv2.warpAffine(img2, np.dot(H, shift_H)[:2,:], new_image_size)
+            new_mask2 = cv2.warpAffine(mask2, np.dot(H, shift_H)[:2,:], new_image_size)
 
         new_img1 = cv2.warpPerspective(img1, shift_H, new_image_size)
+        new_mask1 = cv2.warpPerspective(mask1, shift_H, new_image_size)
 
         #### blend images
+        cross_mask = cv2.bitwise_and(new_mask1, new_mask2)
+        M = cv2.moments(cross_mask)
+
+        cx = int(M['m10']/M['m00'])
+        cy = int(M['m01']/M['m00'])
+        # print("cx:", cx, "cy", cy)
+
         new_img = np.maximum(new_img1, new_img2)
+        new_img = cv2.seamlessClone(new_img1, new_img, cross_mask, (cx, cy),cv2.NORMAL_CLONE)
+        # new_img = multi_band_blending(new_img1, new_img2, new_image_size[1], flag_half=True)
+        # new_img = np.maximum(new_img1, new_img2)
         # new_img = ((new_img1.astype(np.uint16) + new_img2.astype(np.uint16)) // 2).astype(np.uint8)
         # new_img = new_img2.copy()
         # new_img[shift_amount[1]:h+shift_amount[1], shift_amount[0]:w+shift_amount[0]] = new_img1[shift_amount[1]:h+shift_amount[1], shift_amount[0]:w+shift_amount[0]]
 
-        return new_img, this_shift_H
+        new_img_mask = cv2.bitwise_or(new_mask1, new_mask2)
+        return new_img, new_img_mask, this_shift_H
+
 
 if __name__ == "__main__":
     """ Here is a simple example of using this sticher """
@@ -289,16 +344,24 @@ if __name__ == "__main__":
 
     # sticher = Sticher([
     #     '../data/example-data/zijing/medium01.jpg',
+    #     '../data/example-data/zijing/medium04.jpg',
     #     '../data/example-data/zijing/medium02.jpg',
     #     '../data/example-data/zijing/medium03.jpg',
-    #     '../data/example-data/zijing/medium04.jpg',
     #     ])
 
     # sticher = Sticher([
     #     '../data/example-data/zijing/medium01.jpg',
-    #     '../data/example-data/zijing/medium04.jpg',
     #     '../data/example-data/zijing/medium02.jpg',
     #     '../data/example-data/zijing/medium03.jpg',
+    #     '../data/example-data/zijing/medium04.jpg',
+    #     '../data/example-data/zijing/medium05.jpg',
+    #     '../data/example-data/zijing/medium06.jpg',
+    #     '../data/example-data/zijing/medium07.jpg',
+    #     '../data/example-data/zijing/medium08.jpg',
+    #     '../data/example-data/zijing/medium09.jpg',
+    #     '../data/example-data/zijing/medium10.jpg',
+    #     '../data/example-data/zijing/medium11.jpg',
+    #     '../data/example-data/zijing/medium12.jpg',
     #     ])
 
     # sticher = Sticher([

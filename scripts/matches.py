@@ -31,8 +31,10 @@ class FeatureMatcher:
             src_pts = np.float32([ kp2[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
             dst_pts = np.float32([ kp1[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
 
-            M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)#
+            # M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)#
             # matchesMask = mask.ravel().tolist()
+
+            M, mask = cv2.estimateAffine2D(src_pts, dst_pts, cv2.RANSAC, ransacReprojThreshold=5.0)
 
         else:
             print("Not enough matches are found - %d/%d" % (len(good), MIN_MATCH_COUNT))

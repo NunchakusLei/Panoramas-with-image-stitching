@@ -4,6 +4,10 @@ from PyQt5.QtWidgets import QScrollArea, QGridLayout, QMainWindow, QPushButton, 
 from PyQt5.QtCore import QRect, Qt
 from PyQt5.QtGui import QIcon, QPixmap
 
+from stiching import Sticher
+import cv2
+import numpy as np
+
 
 class App(QMainWindow):
 
@@ -42,7 +46,7 @@ class App(QMainWindow):
         self.generateResultBtn = QPushButton("Panorama", self)
         self.generateResultBtn.move(350, 10)
         self.generateResultBtn.setEnabled(False)
-        self.generateResultBtn.clicked.connect(self.openFileNamesDialog)
+        self.generateResultBtn.clicked.connect(self.generateResult)
 
         self.prevImageBtn = QPushButton("Prev Image", self)
         self.prevImageBtn.move(200, 40)
@@ -98,6 +102,10 @@ class App(QMainWindow):
         self.showImages(self.imageFiles[self.currentIndex])
 
     def generateResult(self):
+        sticher = Sticher(self.imageFiles)
+        new_img = sticher.stich_all()
+        cv2.destroyAllWindows() ################
+
         self.currentIndex = 0
         self.imageFiles = None
         self.generateResultBtn.setEnabled(False)
