@@ -2,11 +2,11 @@ import numpy as np
 import cv2
 from features import FeatureExtractor
 from matches import FeatureMatcher
-from cylindral import cylindricalWarpImage
+from cylindrical import cylindricalWarpImage
 from spherical import warpSpherical
 # from multi_band_blending import multi_band_blending
 
-class Sticher:
+class Stitcher:
     def __init__(self, image_names=[], f=3000, mode='spherical'):
         self.__images = []
         self.__image_masks = []

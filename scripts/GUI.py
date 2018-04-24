@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QScrollArea, QGridLayout, QMainWindow, QPushButton, 
 from PyQt5.QtCore import QRect, Qt
 from PyQt5.QtGui import QIcon, QPixmap
 
-from stiching import Sticher
+from stitching import Stitcher
 import cv2
 import numpy as np
 
@@ -102,7 +102,7 @@ class App(QMainWindow):
         self.showImages(self.imageFiles[self.currentIndex])
 
     def generateResult(self):
-        sticher = Sticher(self.imageFiles)
+        sticher = Stitcher(self.imageFiles)
         new_img = sticher.stich_all()
         cv2.destroyAllWindows() ################
 
