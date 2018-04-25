@@ -103,7 +103,7 @@ class App(QMainWindow):
 
     def generateResult(self):
         sticher = Stitcher(self.imageFiles)
-        new_img = sticher.stich_all()
+        new_img = sticher.stitch_all()
         cv2.destroyAllWindows() ################
 
         self.currentIndex = 0
