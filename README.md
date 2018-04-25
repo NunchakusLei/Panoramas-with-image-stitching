@@ -39,4 +39,4 @@ python3 GUI.py
 - Spherical warp: https://github.com/bluenight1994/CV5670/blob/b2c8e1af8133ac18504b18de3c80bb6d4bc695af/Assignment%203/Project3_AutoStitch/warp.py
 - Cylindrical warp: https://github.com/TejasNaikk/Image-Alignment-and-Panoramas/blob/master/main.py
 - seamlessClone: https://www.learnopencv.com/seamless-cloning-using-opencv-python-cpp/
-Test dataset: https://github.com/ppwwyyxx/OpenPano/releases/tag/0.1
+- Test dataset: https://github.com/ppwwyyxx/OpenPano/releases/tag/0.1
