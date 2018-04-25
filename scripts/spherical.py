@@ -1,3 +1,8 @@
+# The source of this script is from:
+# https://github.com/bluenight1994/CV5670/blob/b2c8e1af8133ac18504b18de3c80bb6d4bc695af/Assignment%203/Project3_AutoStitch/warp.py
+
+
+
 import os
 import cv2
 import numpy as np

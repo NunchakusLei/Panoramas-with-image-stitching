@@ -1,3 +1,6 @@
+# The source of this script is from:
+# https://github.com/TejasNaikk/Image-Alignment-and-Panoramas/blob/master/main.py
+
 import cv2
 import numpy as np
 import math
