@@ -7,7 +7,7 @@ from spherical import warpSpherical
 # from multi_band_blending import multi_band_blending
 
 class Stitcher:
-    def __init__(self, image_names=[], f=800, mode='spherical'):
+    def __init__(self, image_names=[], f=800, mode='Spherical'):
         self.__images = []
         self.__image_masks = []
         self.__features = []
@@ -19,7 +19,7 @@ class Stitcher:
         for image_name in image_names:
             img = cv2.imread(image_name)
 
-            if mode=='cylindrical':
+            if mode=='Cylindrical':
                 self.__transform_method = 'affine'
                 #### convert rectangler to cylindrical
                 h,w = img.shape[:2]
@@ -33,7 +33,7 @@ class Stitcher:
                 self.__images.append(cylindrical_img)
                 self.__image_masks.append(cylindrical_mask)
 
-            if mode=='spherical':
+            if mode=='Spherical':
                 self.__transform_method = 'affine'
                 #### convert rectangler to spherical
                 # f = 3000
@@ -43,9 +43,9 @@ class Stitcher:
                 self.__images.append(spherical_img)
                 self.__image_masks.append(spherical_mask)
 
-            if mode=='planner':
+            if mode=='Flat':
                 self.__transform_method = 'homography'
-                #### planner
+                #### flat
                 self.__images.append(img)
                 self.__image_masks.append(np.ones(img.shape[:2], dtype=np.uint8)*255)
 
@@ -181,9 +181,9 @@ class Stitcher:
             # last_H = H # ->
             last_H = np.dot(last_H, shifted_H) # <-
 
-            cv2.imshow("new_img", img1)
-            cv2.waitKey()
-            cv2.destroyAllWindows()
+            # cv2.imshow("new_img", img1)
+            # cv2.waitKey()
+            # cv2.destroyAllWindows()
 
         stiched_image = img1
         return stiched_image
@@ -388,17 +388,17 @@ if __name__ == "__main__":
 
     stitcher = Stitcher([
         '../data/example-data/zijing/medium01.jpg',
-        '../data/example-data/zijing/medium02.jpg',
-        '../data/example-data/zijing/medium03.jpg',
-        '../data/example-data/zijing/medium04.jpg',
-        '../data/example-data/zijing/medium05.jpg',
-        '../data/example-data/zijing/medium06.jpg',
-        '../data/example-data/zijing/medium07.jpg',
-        '../data/example-data/zijing/medium08.jpg',
-        '../data/example-data/zijing/medium09.jpg',
-        '../data/example-data/zijing/medium10.jpg',
-        '../data/example-data/zijing/medium11.jpg',
-        '../data/example-data/zijing/medium12.jpg',
+        # '../data/example-data/zijing/medium02.jpg',
+        # '../data/example-data/zijing/medium03.jpg',
+        # '../data/example-data/zijing/medium04.jpg',
+        # '../data/example-data/zijing/medium05.jpg',
+        # '../data/example-data/zijing/medium06.jpg',
+        # '../data/example-data/zijing/medium07.jpg',
+        # '../data/example-data/zijing/medium08.jpg',
+        # '../data/example-data/zijing/medium09.jpg',
+        # '../data/example-data/zijing/medium10.jpg',
+        # '../data/example-data/zijing/medium11.jpg',
+        # '../data/example-data/zijing/medium12.jpg',
         ])
 
     # stitcher = Stitcher([

@@ -19,6 +19,7 @@ Authors:
 - OpenCV 3.2+
 - Python 3
 - PyQt5
+- opencv-contrib-python
 
 # Modules
 - **features.py**: provides a FeatureExtractor that could extract various features from an image.
