@@ -19,6 +19,7 @@ Authors:
 - OpenCV 3.2+
 - Python 3
 - PyQt5
+- numpy
 - opencv-contrib-python
 
 # Modules
@@ -41,3 +42,4 @@ python3 GUI.py
 - Cylindrical warp: https://github.com/TejasNaikk/Image-Alignment-and-Panoramas/blob/master/main.py
 - seamlessClone: https://www.learnopencv.com/seamless-cloning-using-opencv-python-cpp/
 - Test dataset: https://github.com/ppwwyyxx/OpenPano/releases/tag/0.1
+- PyQT5: https://www.tutorialspoint.com/pyqt/

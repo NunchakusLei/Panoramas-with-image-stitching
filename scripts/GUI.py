@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QScrollArea, QGridLayout, QMainWindow, QPushButton, 
     QInputDialog, QLineEdit, QFileDialog, QFrame, QComboBox
 from PyQt5.QtCore import QRect, Qt
 from PyQt5.QtGui import QIcon, QPixmap
+from timeit import default_timer as timer
 
 from stitching import Stitcher
 import cv2
@@ -118,6 +119,7 @@ class App(QMainWindow):
         self.show()
 
     def openFileNamesDialog(self):
+        # https://www.tutorialspoint.com/pyqt/pyqt_qfiledialog_widget.htm
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         files, _ = QFileDialog.getOpenFileNames(self, "QFileDialog.getOpenFileNames()", "",
@@ -182,11 +184,17 @@ class App(QMainWindow):
 
     def stitchImage(self):
         # nonlocal self
+        start = timer()
         stitcher = Stitcher(self.imageFiles,f=int(self.focalInpput.text()),mode=self.compStyle.currentText())
-        new_img = stitcher.stitch_all()
-        cv2.imwrite(self.fileNameInput.text(), new_img)
-        self.showImages(self.fileNameInput.text())
-
+        try:
+            new_img = stitcher.stitch_all()
+            end = timer()
+            print(end - start)
+            cv2.imwrite(self.fileNameInput.text(), new_img)
+            self.showImages(self.fileNameInput.text())
+        except Exception:
+            self.labelImage.move(150, 80)
+            self.labelImage.setText("Failed to stitch the images, try other compositing method please.")
         # cv2.destroyAllWindows()  ################
 
         # self.currentIndex = 0
