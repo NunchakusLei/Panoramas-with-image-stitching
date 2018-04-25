@@ -7,7 +7,7 @@ from spherical import warpSpherical
 # from multi_band_blending import multi_band_blending
 
 class Stitcher:
-    def __init__(self, image_names=[], f=3000, mode='spherical'):
+    def __init__(self, image_names=[], f=800, mode='spherical'):
         self.__images = []
         self.__image_masks = []
         self.__features = []
@@ -20,6 +20,7 @@ class Stitcher:
             img = cv2.imread(image_name)
 
             if mode=='cylindrical':
+                self.__transform_method = 'affine'
                 #### convert rectangler to cylindrical
                 h,w = img.shape[:2]
                 f = 800
@@ -33,6 +34,7 @@ class Stitcher:
                 self.__image_masks.append(cylindrical_mask)
 
             if mode=='spherical':
+                self.__transform_method = 'affine'
                 #### convert rectangler to spherical
                 # f = 3000
                 spherical_img, spherical_mask = warpSpherical(img, f)
@@ -42,6 +44,7 @@ class Stitcher:
                 self.__image_masks.append(spherical_mask)
 
             if mode=='planner':
+                self.__transform_method = 'homography'
                 #### planner
                 self.__images.append(img)
                 self.__image_masks.append(np.ones(img.shape[:2], dtype=np.uint8)*255)
@@ -138,10 +141,11 @@ class Stitcher:
             des2 = self.__features[index2]['des']
 
             # get homography
-            # H, _ = self.matcher.getHomography(kp1, kp2, des1, des2,
-            #                                   good=pair['good_matched_points']) # ->
-            H, _ = self.matcher.getHomography(kp2, kp1, des2, des1,
-                                              good=pair['good_matched_points'])
+            # H, _ = self.matcher.getTransform(kp1, kp2, des1, des2,
+            #                                  good=pair['good_matched_points']) # ->
+            H, _ = self.matcher.getTransform(kp2, kp1, des2, des1,
+                                             good=pair['good_matched_points'],
+                                             type=self.__transform_method)
 
             pair['H'] = H
             Hs.append(H)
@@ -149,7 +153,7 @@ class Stitcher:
         # print(self.__image_pairs)
         return Hs
 
-    def stich_all(self):
+    def stitch_all(self):
         if self.__start is None or self.__image_pairs==[] or 'H' not in self.__image_pairs[0].keys():
             self.find_Hs()
 
@@ -171,8 +175,9 @@ class Stitcher:
 
             print("stiching image %d and image %d" % (index1,index2))
 
-            # img1, shifted_H = self.mix_images(img1, img2, H) # ->
-            img1, mask1, shifted_H = self.mix_images(img2, img1, mask2, mask1, H)
+            # img1, shifted_H = self.mix_images(img1, img2, H, type=self.__transform_method) # ->
+            img1, mask1, shifted_H = self.mix_images(img2, img1, mask2, mask1, H,
+                                                     type=self.__transform_method)
             # last_H = H # ->
             last_H = np.dot(last_H, shifted_H) # <-
 
@@ -183,7 +188,7 @@ class Stitcher:
         stiched_image = img1
         return stiched_image
 
-    def old_stich_all(self):
+    def old_stitch_all(self):
         new_img = None
         for image in self.__images:
             if new_img is None:
@@ -198,13 +203,13 @@ class Stitcher:
                 kp, des = self.extractor.getFeatures(img_gray)
 
                 # matches feature and get homography
-                H, _ = self.matcher.getHomography(kp, new_kp, des, new_des)
-                # H, _ = self.matcher.getHomography(new_kp, kp, new_des, des)
+                H, _ = self.matcher.getTransform(kp, new_kp, des, new_des)
+                # H, _ = self.matcher.getTransform(new_kp, kp, new_des, des)
                 if H is None:
                     continue
 
                 # stich images
-                new_img, _, _ = sticher.mix_images(image, new_img, H)
+                new_img, _, _ = stitcher.mix_images(image, new_img, H)
                 # new_img, _ = sticher.mix_images(new_img, image, H)
 
                 cv2.imshow("new_img", new_img)
@@ -231,15 +236,13 @@ class Stitcher:
         # print("dst:", dst)
 
         h1, w1 = img1.shape[:2]
-        h = max(h, h1)
-        w = max(w, w1)
 
         maxs = np.max(dst, axis=0).flatten()
         mins = np.min(dst, axis=0).flatten()
         # print("Maxs:", maxs)
         # print("Mins", mins)
 
-        abs_maxs = np.max([maxs, [w, h]], axis=0)
+        abs_maxs = np.max([maxs, [w1, h1]], axis=0)
         abs_mins = np.min([mins, [0, 0]], axis=0)
         # print("Absolute minimum:", abs_mins)
 
@@ -259,19 +262,41 @@ class Stitcher:
         new_image_size = tuple(np.ceil(abs_maxs - abs_mins).astype(np.int))
         # print("New image size:", new_image_size)
 
-        #### wrap images
-        # if shift_amount[0]>0:
-        if dst[0][0][0]<0:
-            # this_shift_H = np.dot(shift_H, H)
-            this_shift_H = shift_H
-            # new_img2 = cv2.warpPerspective(img2, np.dot(shift_H, H), new_image_size)
+        # #### wrap images
+        # # if shift_amount[0]>0:
+        # if dst[0][0][0]<0:
+        #     # this_shift_H = np.dot(shift_H, H)
+        #     this_shift_H = shift_H
+        #     if type=="homography":
+        #         new_img2 = cv2.warpPerspective(img2, np.dot(shift_H, H), new_image_size)
+        #         new_mask2 = cv2.warpPerspective(mask2, np.dot(shift_H, H), new_image_size)
+        #     if type=="affine":
+        #         new_img2 = cv2.warpAffine(img2, np.dot(shift_H, H)[:2,:], new_image_size)
+        #         new_mask2 = cv2.warpAffine(mask2, np.dot(shift_H, H)[:2,:], new_image_size)
+        # else:
+        #     this_shift_H = shift_H
+        #     if type=="homography":
+        #         new_img2 = cv2.warpPerspective(img2, np.dot(H, shift_H), new_image_size)
+        #         new_mask2 = cv2.warpPerspective(mask2, np.dot(H, shift_H), new_image_size)
+        #     if type=="affine":
+        #         new_img2 = cv2.warpAffine(img2, np.dot(H, shift_H)[:2,:], new_image_size)
+        #         new_mask2 = cv2.warpAffine(mask2, np.dot(H, shift_H)[:2,:], new_image_size)
+
+        this_shift_H = shift_H
+        if type=="homography":
+            new_img2 = cv2.warpPerspective(img2, np.dot(shift_H, H), new_image_size)
+            new_mask2 = cv2.warpPerspective(mask2, np.dot(shift_H, H), new_image_size)
+        if type=="affine":
             new_img2 = cv2.warpAffine(img2, np.dot(shift_H, H)[:2,:], new_image_size)
             new_mask2 = cv2.warpAffine(mask2, np.dot(shift_H, H)[:2,:], new_image_size)
-        else:
-            this_shift_H = shift_H
-            # new_img2 = cv2.warpPerspective(img2, np.dot(H, shift_H), new_image_size)
-            new_img2 = cv2.warpAffine(img2, np.dot(H, shift_H)[:2,:], new_image_size)
-            new_mask2 = cv2.warpAffine(mask2, np.dot(H, shift_H)[:2,:], new_image_size)
+
+        # this_shift_H = shift_H
+        # if type=="homography":
+        #     new_img2 = cv2.warpPerspective(img2, np.dot(H, shift_H), new_image_size)
+        #     new_mask2 = cv2.warpPerspective(mask2, np.dot(H, shift_H), new_image_size)
+        # if type=="affine":
+        #     new_img2 = cv2.warpAffine(img2, np.dot(H, shift_H)[:2,:], new_image_size)
+        #     new_mask2 = cv2.warpAffine(mask2, np.dot(H, shift_H)[:2,:], new_image_size)
 
         new_img1 = cv2.warpPerspective(img1, shift_H, new_image_size)
         new_mask1 = cv2.warpPerspective(mask1, shift_H, new_image_size)
@@ -315,63 +340,75 @@ if __name__ == "__main__":
 
     # matches feature and get homography
     matcher = FeatureMatcher()
-    H, _ = matcher.getHomography(kp1, kp2, des1, des2)
+    H, _ = matcher.getTransform(kp1, kp2, des1, des2)
 
-    # stich the first image and the second image
-    sticher = Sticher()
-    new_img = sticher.mix_images(img1, img2, H)
+    # stitch the first image and the second image
+    stitcher = Stitcher()
+    new_img = stitcher.mix_images(img1, img2,
+                                  255*np.ones(img1.shape[:2], dtype=img1.dtype),
+                                  255*np.ones(img2.shape[:2], dtype=img2.dtype),
+                                  H)
 
     # stich the second image and the third image
     new_img_gray = cv2.cvtColor(new_img, cv2.COLOR_RGB2GRAY)
     new_kp, new_des = extractor.getFeatures(new_img_gray)
-    H, _ = matcher.getHomography(new_kp, kp3, new_des, des3)
-    new_img = sticher.mix_images(new_img, img3, H)
+    H, _ = matcher.getTransform(new_kp, kp3, new_des, des3)
+    new_img = sticher.mix_images(new_img, img3,
+                                 255*np.ones(new_img.shape[:2], dtype=new_img.dtype),
+                                 255*np.ones(img3.shape[:2], dtype=img3.dtype),
+                                 H)
     """
 
-    sticher = Sticher([
-        '../data/example-data/flower/1.jpg',
-        '../data/example-data/flower/2.jpg',
-        '../data/example-data/flower/3.jpg',
-        '../data/example-data/flower/4.jpg',
-        ])
+    # stitcher = Stitcher([
+    #     '../data/example-data/flower/1.jpg',
+    #     '../data/example-data/flower/2.jpg',
+    #     '../data/example-data/flower/3.jpg',
+    #     '../data/example-data/flower/4.jpg',
+    #     ],
+    #     # mode='planner',
+    #     )
 
-    # sticher = Sticher([
+    # stitcher = Stitcher([
     #     '../data/example-data/uav/medium01.jpg',
     #     '../data/example-data/uav/medium02.jpg',
     #     '../data/example-data/uav/medium03.jpg',
     #     '../data/example-data/uav/medium04.jpg',
+    #     '../data/example-data/uav/medium05.jpg',
+    #     '../data/example-data/uav/medium06.jpg',
     #     ])
 
-    # sticher = Sticher([
+    # stitcher = Stitcher([
     #     '../data/example-data/zijing/medium01.jpg',
     #     '../data/example-data/zijing/medium04.jpg',
     #     '../data/example-data/zijing/medium02.jpg',
     #     '../data/example-data/zijing/medium03.jpg',
-    #     ])
+    #     ],
+    #     # mode='planner'
+    #     )
 
-    # sticher = Sticher([
-    #     '../data/example-data/zijing/medium01.jpg',
-    #     '../data/example-data/zijing/medium02.jpg',
-    #     '../data/example-data/zijing/medium03.jpg',
-    #     '../data/example-data/zijing/medium04.jpg',
-    #     '../data/example-data/zijing/medium05.jpg',
-    #     '../data/example-data/zijing/medium06.jpg',
-    #     '../data/example-data/zijing/medium07.jpg',
-    #     '../data/example-data/zijing/medium08.jpg',
-    #     '../data/example-data/zijing/medium09.jpg',
-    #     '../data/example-data/zijing/medium10.jpg',
-    #     '../data/example-data/zijing/medium11.jpg',
-    #     '../data/example-data/zijing/medium12.jpg',
-    #     ])
+    stitcher = Stitcher([
+        '../data/example-data/zijing/medium01.jpg',
+        '../data/example-data/zijing/medium02.jpg',
+        '../data/example-data/zijing/medium03.jpg',
+        '../data/example-data/zijing/medium04.jpg',
+        '../data/example-data/zijing/medium05.jpg',
+        '../data/example-data/zijing/medium06.jpg',
+        '../data/example-data/zijing/medium07.jpg',
+        '../data/example-data/zijing/medium08.jpg',
+        '../data/example-data/zijing/medium09.jpg',
+        '../data/example-data/zijing/medium10.jpg',
+        '../data/example-data/zijing/medium11.jpg',
+        '../data/example-data/zijing/medium12.jpg',
+        ])
 
-    # sticher = Sticher([
+    # stitcher = Stitcher([
     #     '../data/example-data/CMU2/medium01.jpg',
     #     '../data/example-data/CMU2/medium04.jpg',
     #     '../data/example-data/CMU2/medium02.jpg',
     #     '../data/example-data/CMU2/medium03.jpg',
     #     ])
 
-    new_img = sticher.stich_all()
+    new_img = stitcher.stitch_all()
 
     # new_img = cv2.imread('../data/example-data/uav/medium04.jpg')
 
