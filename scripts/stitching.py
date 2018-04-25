@@ -4,6 +4,8 @@ from features import FeatureExtractor
 from matches import FeatureMatcher
 from cylindrical import cylindricalWarpImage
 from spherical import warpSpherical
+from timeit import default_timer as timer
+
 # from multi_band_blending import multi_band_blending
 
 class Stitcher:
@@ -23,9 +25,11 @@ class Stitcher:
                 self.__transform_method = 'affine'
                 #### convert rectangler to cylindrical
                 h,w = img.shape[:2]
-                f = 800
+                start=timer()
                 K = np.array([[f, 0, w/2], [0, f, h/2], [0, 0, 1]]) # mock calibration matrix
                 cylindrical_img, cylindrical_mask = cylindricalWarpImage(img, K)
+                end=timer()
+                print("convert time", end-start)
                 print("converting", image_name, "to cylindrical ... ")
                 # print("cylindrical mask dtype:", cylindrical_mask.dtype)
                 # print("cylindrical mask shape:", cylindrical_mask.shape)
@@ -37,7 +41,10 @@ class Stitcher:
                 self.__transform_method = 'affine'
                 #### convert rectangler to spherical
                 # f = 3000
+                start=timer()
                 spherical_img, spherical_mask = warpSpherical(img, f)
+                end=timer()
+                print("convert time", end-start)
                 print("converting", image_name, "to spherical ... ")
 
                 self.__images.append(spherical_img)
@@ -127,9 +134,12 @@ class Stitcher:
         # Initialize
         Hs = []
         # prepare pair details
+        start = timer()
+
         if self.__image_pairs == []:
             self.find_most_pair_two_images()
-
+        end = timer()
+        print("Find Pair:",end-start)
         # find Homography matrixes
         for i in range(len(self.__image_pairs)):
             pair = self.__image_pairs[i]

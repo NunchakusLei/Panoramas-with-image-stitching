@@ -189,7 +189,7 @@ class App(QMainWindow):
         try:
             new_img = stitcher.stitch_all()
             end = timer()
-            print(end - start)
+            print("Total Time:",end - start)
             cv2.imwrite(self.fileNameInput.text(), new_img)
             self.showImages(self.fileNameInput.text())
         except Exception:
