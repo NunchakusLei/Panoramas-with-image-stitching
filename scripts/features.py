@@ -7,6 +7,8 @@ class FeatureExtractor:
             self.extractor = cv2.xfeatures2d.SIFT_create()
         elif type=='SURF':
             self.extractor = cv2.xfeatures2d.SURF_create()
+        elif type=='ORB':
+            self.extractor = cv2.ORB_create()
         else:
             raise typeError("Error, unknown feature type!")
 

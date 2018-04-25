@@ -212,9 +212,9 @@ class Stitcher:
                 new_img, _, _ = stitcher.mix_images(image, new_img, H)
                 # new_img, _ = sticher.mix_images(new_img, image, H)
 
-                cv2.imshow("new_img", new_img)
-                cv2.waitKey()
-                cv2.destroyAllWindows()
+                # cv2.imshow("new_img", new_img)
+                # cv2.waitKey()
+                # cv2.destroyAllWindows()
 
         return new_img
 
@@ -309,6 +309,12 @@ class Stitcher:
         cy = int(M['m01']/M['m00'])
         # print("cx:", cx, "cy", cy)
 
+        # minus_cross_mask = ((new_mask1-cross_mask)/255)
+        # croped_new_img1 = np.zeros_like(new_img1)
+        # croped_new_img1[:,:,0] = new_img1[:,:,0]*minus_cross_mask
+        # croped_new_img1[:,:,1] = new_img1[:,:,1]*minus_cross_mask
+        # croped_new_img1[:,:,2] = new_img1[:,:,2]*minus_cross_mask
+        # new_img = np.maximum(croped_new_img1, new_img2)
         new_img = np.maximum(new_img1, new_img2)
         new_img = cv2.seamlessClone(new_img1, new_img, cross_mask, (cx, cy),cv2.NORMAL_CLONE)
         # new_img = multi_band_blending(new_img1, new_img2, new_image_size[1], flag_half=True)
@@ -359,14 +365,14 @@ if __name__ == "__main__":
                                  H)
     """
 
-    # stitcher = Stitcher([
-    #     '../data/example-data/flower/1.jpg',
-    #     '../data/example-data/flower/2.jpg',
-    #     '../data/example-data/flower/3.jpg',
-    #     '../data/example-data/flower/4.jpg',
-    #     ],
-    #     # mode='planner',
-    #     )
+    stitcher = Stitcher([
+        '../data/example-data/flower/1.jpg',
+        '../data/example-data/flower/2.jpg',
+        '../data/example-data/flower/3.jpg',
+        '../data/example-data/flower/4.jpg',
+        ],
+        mode='Flat',
+        )
 
     # stitcher = Stitcher([
     #     '../data/example-data/uav/medium01.jpg',
@@ -386,20 +392,20 @@ if __name__ == "__main__":
     #     # mode='planner'
     #     )
 
-    stitcher = Stitcher([
-        '../data/example-data/zijing/medium01.jpg',
-        # '../data/example-data/zijing/medium02.jpg',
-        # '../data/example-data/zijing/medium03.jpg',
-        # '../data/example-data/zijing/medium04.jpg',
-        # '../data/example-data/zijing/medium05.jpg',
-        # '../data/example-data/zijing/medium06.jpg',
-        # '../data/example-data/zijing/medium07.jpg',
-        # '../data/example-data/zijing/medium08.jpg',
-        # '../data/example-data/zijing/medium09.jpg',
-        # '../data/example-data/zijing/medium10.jpg',
-        # '../data/example-data/zijing/medium11.jpg',
-        # '../data/example-data/zijing/medium12.jpg',
-        ])
+    # stitcher = Stitcher([
+    #     '../data/example-data/zijing/medium01.jpg',
+    #     # '../data/example-data/zijing/medium02.jpg',
+    #     # '../data/example-data/zijing/medium03.jpg',
+    #     # '../data/example-data/zijing/medium04.jpg',
+    #     # '../data/example-data/zijing/medium05.jpg',
+    #     # '../data/example-data/zijing/medium06.jpg',
+    #     # '../data/example-data/zijing/medium07.jpg',
+    #     # '../data/example-data/zijing/medium08.jpg',
+    #     # '../data/example-data/zijing/medium09.jpg',
+    #     # '../data/example-data/zijing/medium10.jpg',
+    #     # '../data/example-data/zijing/medium11.jpg',
+    #     # '../data/example-data/zijing/medium12.jpg',
+    #     ])
 
     # stitcher = Stitcher([
     #     '../data/example-data/CMU2/medium01.jpg',
