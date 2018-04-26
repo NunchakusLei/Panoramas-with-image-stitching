@@ -36,6 +36,7 @@ class FeatureMatcher:
 
             if type=='affine':
                 M, mask = cv2.estimateAffine2D(src_pts, dst_pts, cv2.RANSAC, ransacReprojThreshold=5.0)
+                M = np.append(M, [[0,0,1]], axis=0)
 
             # matchesMask = mask.ravel().tolist()
         else:

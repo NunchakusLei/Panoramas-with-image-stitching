@@ -69,6 +69,27 @@ class Stitcher:
             feature = dict(kp=kp, des=des)
             self.__features.append(feature)
 
+    def is_all_connected(self, all_nodes, connection, s, nodes_visited=set()):
+        nodes_visited.add(s)
+        for node in connection[s]:
+            if node not in nodes_visited:
+                self.is_all_connected(all_nodes, connection, node, nodes_visited)
+
+        if nodes_visited==all_nodes:
+            return True
+        else:
+            return False
+
+    def bfs_find_pairs(self, connection, s, good_matrix, nodes_visited=set()):
+        nodes_visited.add(s)
+        for node in connection[s]:
+            if node not in nodes_visited:
+                pair_details = dict(src_index=s,
+                                    dst_index=node,
+                                    good_matched_points=good_matrix[s][node])
+                self.__image_pairs.append(pair_details)
+                self.bfs_find_pairs(connection, node, good_matrix, nodes_visited)
+
     def find_most_pair_two_images(self):
         #### prepare features
         if self.__features == []:
@@ -89,6 +110,8 @@ class Stitcher:
                 if pre_i==i:
                     continue
 
+                print("matching features on image %d and image %d ..." % (pre_i, i))
+
                 # matches feature
                 # good = self.matcher.match(
                 #     self.__features[pre_i]['des'], self.__features[i]['des']) # ->
@@ -97,32 +120,107 @@ class Stitcher:
                 pair_matrix[pre_i, i] = len(good)
                 good_matrix[pre_i][i] = good
 
-        # print(pair_matrix)
+        print(pair_matrix)
+        # return
 
         #### find the most pair image relationship
-        pair_amount_sum = np.sum(pair_matrix, axis=1)
-        # print(pair_amount_sum)
-        ordered_index = np.argsort(pair_amount_sum)
-        # ordered_index = np.flip(ordered_index, axis=0)
-        # print(ordered_index)
-        img_index = ordered_index[0]
-        self.__start = img_index
-        for i in range(len(ordered_index)-1):
+        image_number = len(pair_matrix)
+        maximum_index = np.argmax(pair_matrix)
+        row = maximum_index // image_number
+        col = maximum_index % image_number
+        print("maximum_index =", maximum_index, "len(pair_matrix) =", image_number)
+        print("row =", row, "col =", col)
+        print("The maximum value is", pair_matrix[row][col])
 
-            max_index = np.argmax(pair_matrix[img_index])
-            # while max_index<i:# max_index in most_pair_image:
-            #     pair_matrix[img_index][max_index] = 0
-            #     max_index = np.argmax(pair_matrix[img_index])
-            most_pair_image[img_index] = max_index
-            pair_matrix[max_index][img_index] = 0 # avoid linked back
-            pair_details = dict(src_index=img_index,
-                                dst_index=max_index,
-                                good_matched_points=good_matrix[img_index][max_index])
-            self.__image_pairs.append(pair_details)
+        pair_matrix[row][col] = -1
 
-            # print(pair_matrix)
-            # print()
-            img_index = max_index
+        all_nodes = set([i for i in range(image_number)])
+        nodes = set()
+        nodes.add(row)
+        nodes.add(col)
+
+        edges = {}
+        edges[row] = []#set()
+        edges[row].append(col)#add(col)
+        edges[col] = []#set()
+        edges[col].append(row)#add(row)
+
+        print("all_nodes =", all_nodes)
+        print("nodes =", nodes)
+        print("edges =", edges)
+
+        self.__start = row
+        while not self.is_all_connected(all_nodes, edges, self.__start):
+        # while all_nodes!=nodes:
+        # for _ in range(image_number*(image_number-1)):
+            print()
+            maximum_index = np.argmax(pair_matrix)
+            row = maximum_index // image_number
+            col = maximum_index % image_number
+            print("maximum_index =", maximum_index, "len(pair_matrix) =", image_number)
+            print("row =", row, "col =", col)
+            print("The maximum value is", pair_matrix[row][col])
+
+            pair_matrix[row][col] = -1
+
+            if row not in nodes:
+                edges[row] = []#set()
+            if col not in nodes:
+                edges[col] = []#set()
+            edges[row].append(col)#add(col)
+            edges[col].append(row)#add(row)
+
+            nodes.add(row)
+            nodes.add(col)
+
+
+            print("all_nodes =", all_nodes)
+            print("nodes =", nodes)
+            print("edges =", edges)
+
+        print("Is a closed tree?", self.is_all_connected(all_nodes, edges, self.__start))
+        self.bfs_find_pairs(edges, self.__start, good_matrix)
+
+            # # -------------------
+            #
+            # most_pair_image[img_index] = max_index
+            # pair_matrix[max_index][img_index] = 0 # avoid linked back
+            # pair_details = dict(src_index=img_index,
+            #                     dst_index=max_index,
+            #                     good_matched_points=good_matrix[img_index][max_index])
+            # self.__image_pairs.append(pair_details)
+            #
+            # # print(pair_matrix)
+            # # print()
+            # img_index = max_index
+            # #--------------------
+
+
+
+        # #### find the most pair image relationship (old)
+        # pair_amount_sum = np.sum(pair_matrix, axis=1)
+        # # print(pair_amount_sum)
+        # ordered_index = np.argsort(pair_amount_sum)
+        # # ordered_index = np.flip(ordered_index, axis=0)
+        # # print(ordered_index)
+        # img_index = ordered_index[0]
+        # self.__start = img_index
+        # for i in range(len(ordered_index)-1):
+        #
+        #     max_index = np.argmax(pair_matrix[img_index])
+        #     # while max_index<i:# max_index in most_pair_image:
+        #     #     pair_matrix[img_index][max_index] = 0
+        #     #     max_index = np.argmax(pair_matrix[img_index])
+        #     most_pair_image[img_index] = max_index
+        #     pair_matrix[max_index][img_index] = 0 # avoid linked back
+        #     pair_details = dict(src_index=img_index,
+        #                         dst_index=max_index,
+        #                         good_matched_points=good_matrix[img_index][max_index])
+        #     self.__image_pairs.append(pair_details)
+        #
+        #     # print(pair_matrix)
+        #     # print()
+        #     img_index = max_index
 
         # print(pair_matrix)
         # print(good_matrix)
@@ -139,7 +237,7 @@ class Stitcher:
         if self.__image_pairs == []:
             self.find_most_pair_two_images()
         end = timer()
-        print("Find Pair:",end-start)
+        print("Find Pair time:",end-start)
         # find Homography matrixes
         for i in range(len(self.__image_pairs)):
             pair = self.__image_pairs[i]
@@ -168,28 +266,37 @@ class Stitcher:
             self.find_Hs()
 
         shifted_H = np.eye(3)
-        last_H = np.eye(3)
+        # last_H = np.eye(3)
         img1 = self.__images[self.__start]
         mask1 = self.__image_masks[self.__start]
+        shifted_Hs = {}
+        shifted_Hs[self.__start] = shifted_H
         for i in range(len(self.__image_pairs)):
             pair = self.__image_pairs[i]
-            # H = np.dot(shifted_H, last_H) # ->
-            H = np.dot(pair['H'], np.linalg.inv(shifted_H)) # <-
-            # H = pair['H']
+
 
             index1 = pair['src_index']
             index2 = pair['dst_index']
             # img1 = self.__images[index1]
             img2 = self.__images[index2]
             mask2 = self.__image_masks[index2]
-
             print("stiching image %d and image %d" % (index1,index2))
+
+
+            # H = np.dot(shifted_H, last_H) # ->
+            H = np.dot(pair['H'], np.linalg.inv(shifted_Hs[index1])) # <-
+            # H = pair['H']
+
 
             # img1, shifted_H = self.mix_images(img1, img2, H, type=self.__transform_method) # ->
             img1, mask1, shifted_H = self.mix_images(img2, img1, mask2, mask1, H,
                                                      type=self.__transform_method)
             # last_H = H # ->
-            last_H = np.dot(last_H, shifted_H) # <-
+            # last_H = np.dot(last_H, shifted_H) # <-
+            shifted_Hs[index2] = shifted_H
+            # print("H", H)
+            shifted_Hs[index1] = H
+
 
             # cv2.imshow("new_img", img1)
             # cv2.waitKey()
@@ -232,8 +339,8 @@ class Stitcher:
         """
         This function will stick img2 to img1
         """
-        if type=="affine":
-            H = np.append(H, [[0,0,1]], axis=0)
+        # if type=="affine":
+        #     H = np.append(H, [[0,0,1]], axis=0)
 
         h, w = img2.shape[:2]
         pts = np.float32([[0,0],
@@ -315,18 +422,23 @@ class Stitcher:
         cross_mask = cv2.bitwise_and(new_mask1, new_mask2)
         M = cv2.moments(cross_mask)
 
-        cx = int(M['m10']/M['m00'])
-        cy = int(M['m01']/M['m00'])
-        # print("cx:", cx, "cy", cy)
+        try:
+            cx = int(M['m10']/M['m00'])
+            cy = int(M['m01']/M['m00'])
+            # print("cx:", cx, "cy", cy)
 
-        # minus_cross_mask = ((new_mask1-cross_mask)/255)
-        # croped_new_img1 = np.zeros_like(new_img1)
-        # croped_new_img1[:,:,0] = new_img1[:,:,0]*minus_cross_mask
-        # croped_new_img1[:,:,1] = new_img1[:,:,1]*minus_cross_mask
-        # croped_new_img1[:,:,2] = new_img1[:,:,2]*minus_cross_mask
-        # new_img = np.maximum(croped_new_img1, new_img2)
-        new_img = np.maximum(new_img1, new_img2)
-        new_img = cv2.seamlessClone(new_img1, new_img, cross_mask, (cx, cy),cv2.NORMAL_CLONE)
+            new_img = np.maximum(new_img1, new_img2)
+            new_img = cv2.seamlessClone(new_img1, new_img, cross_mask, (cx, cy), cv2.NORMAL_CLONE)
+        except ZeroDivisionError:
+            new_img = np.maximum(new_img1, new_img2)
+
+        # # minus_cross_mask = ((new_mask1-cross_mask)/255)
+        # # croped_new_img1 = np.zeros_like(new_img1)
+        # # croped_new_img1[:,:,0] = new_img1[:,:,0]*minus_cross_mask
+        # # croped_new_img1[:,:,1] = new_img1[:,:,1]*minus_cross_mask
+        # # croped_new_img1[:,:,2] = new_img1[:,:,2]*minus_cross_mask
+        # # new_img = np.maximum(croped_new_img1, new_img2)
+
         # new_img = multi_band_blending(new_img1, new_img2, new_image_size[1], flag_half=True)
         # new_img = np.maximum(new_img1, new_img2)
         # new_img = ((new_img1.astype(np.uint16) + new_img2.astype(np.uint16)) // 2).astype(np.uint8)
@@ -375,23 +487,23 @@ if __name__ == "__main__":
                                  H)
     """
 
-    stitcher = Stitcher([
-        '../data/example-data/flower/1.jpg',
-        '../data/example-data/flower/2.jpg',
-        '../data/example-data/flower/3.jpg',
-        '../data/example-data/flower/4.jpg',
-        ],
-        mode='Flat',
-        )
-
     # stitcher = Stitcher([
-    #     '../data/example-data/uav/medium01.jpg',
-    #     '../data/example-data/uav/medium02.jpg',
-    #     '../data/example-data/uav/medium03.jpg',
-    #     '../data/example-data/uav/medium04.jpg',
-    #     '../data/example-data/uav/medium05.jpg',
-    #     '../data/example-data/uav/medium06.jpg',
-    #     ])
+    #     '../data/example-data/flower/1.jpg',
+    #     '../data/example-data/flower/2.jpg',
+    #     '../data/example-data/flower/3.jpg',
+    #     '../data/example-data/flower/4.jpg',
+    #     ],
+    #     mode='Flat',
+    #     )
+
+    stitcher = Stitcher([
+        '../data/example-data/uav/medium01.jpg',
+        '../data/example-data/uav/medium02.jpg',
+        '../data/example-data/uav/medium03.jpg',
+        '../data/example-data/uav/medium04.jpg',
+        '../data/example-data/uav/medium05.jpg',
+        '../data/example-data/uav/medium06.jpg',
+        ])
 
     # stitcher = Stitcher([
     #     '../data/example-data/zijing/medium01.jpg',
@@ -404,17 +516,17 @@ if __name__ == "__main__":
 
     # stitcher = Stitcher([
     #     '../data/example-data/zijing/medium01.jpg',
-    #     # '../data/example-data/zijing/medium02.jpg',
-    #     # '../data/example-data/zijing/medium03.jpg',
-    #     # '../data/example-data/zijing/medium04.jpg',
-    #     # '../data/example-data/zijing/medium05.jpg',
-    #     # '../data/example-data/zijing/medium06.jpg',
-    #     # '../data/example-data/zijing/medium07.jpg',
-    #     # '../data/example-data/zijing/medium08.jpg',
-    #     # '../data/example-data/zijing/medium09.jpg',
-    #     # '../data/example-data/zijing/medium10.jpg',
-    #     # '../data/example-data/zijing/medium11.jpg',
-    #     # '../data/example-data/zijing/medium12.jpg',
+    #     '../data/example-data/zijing/medium02.jpg',
+    #     '../data/example-data/zijing/medium03.jpg',
+    #     '../data/example-data/zijing/medium04.jpg',
+    #     '../data/example-data/zijing/medium05.jpg',
+    #     '../data/example-data/zijing/medium06.jpg',
+    #     '../data/example-data/zijing/medium07.jpg',
+    #     '../data/example-data/zijing/medium08.jpg',
+    #     '../data/example-data/zijing/medium09.jpg',
+    #     '../data/example-data/zijing/medium10.jpg',
+    #     '../data/example-data/zijing/medium11.jpg',
+    #     '../data/example-data/zijing/medium12.jpg',
     #     ])
 
     # stitcher = Stitcher([
