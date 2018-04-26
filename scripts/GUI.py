@@ -24,7 +24,7 @@ class App(QMainWindow):
         self.compStyle = None
         self.compLabel = None
         self.gridLayout = None
-        self.root = Tk()
+        # self.root = Tk()
         self.title = 'Panorama Image Stitching'
         self.left = 10
         self.top = 10
@@ -193,6 +193,7 @@ class App(QMainWindow):
             cv2.imwrite(self.fileNameInput.text(), new_img)
             self.showImages(self.fileNameInput.text())
         except Exception:
+            print("!!!!!!!!!!!!!")
             self.labelImage.move(150, 80)
             self.labelImage.setText("Failed to stitch the images, try other compositing method please.")
         # cv2.destroyAllWindows()  ################
