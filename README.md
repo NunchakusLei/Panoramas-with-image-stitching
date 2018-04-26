@@ -34,7 +34,7 @@ Authors:
 Type in the following command on a terminal to execute the software with graphic user interface.
 
 ```bash
-python3 script/GUI.py
+python3 scripts/GUI.py
 ```
 
 # References
