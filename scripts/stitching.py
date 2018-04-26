@@ -6,8 +6,6 @@ from cylindrical import cylindricalWarpImage
 from spherical import warpSpherical
 from timeit import default_timer as timer
 
-# from multi_band_blending import multi_band_blending
-
 class Stitcher:
     def __init__(self, image_names=[], f=800, mode='Spherical'):
         self.__images = []
@@ -102,9 +100,6 @@ class Stitcher:
         pair_matrix = np.zeros((len(self.__images), len(self.__images)))
         good_matrix = [[ None for _ in range(len(self.__images))]
                        for _ in range(len(self.__images))]
-        # most_pair_image = [ -1 for _ in range(len(self.__images))]
-        # pair_amounts = [ 0 for _ in range(len(self.__images))]
-        # print(good_matrix)
 
         #### find matches amount matrix
         print("matching features ...")
@@ -123,8 +118,7 @@ class Stitcher:
                 pair_matrix[pre_i, i] = len(good)
                 good_matrix[pre_i][i] = good
 
-        print(pair_matrix)
-        # return
+        # print(pair_matrix)
 
         #### find the most pair image relationship
         image_number = len(pair_matrix)
@@ -143,10 +137,6 @@ class Stitcher:
         nodes.add(col)
 
         edges = {}
-        # edges[row] = []#set()
-        # edges[row].append(col)#add(col)
-        # edges[col] = []#set()
-        # edges[col].append(row)#add(row)
         edges[row] = set()
         edges[row].add(col)
         edges[col] = set()
@@ -159,8 +149,6 @@ class Stitcher:
         self.__start = row
         # print("Is a closed tree?", self.is_all_connected(all_nodes, edges, self.__start))
         while not self.is_all_connected(all_nodes, edges, self.__start, set()):
-        # while all_nodes!=nodes:
-        # for _ in range(image_number*(image_number-1)):
             maximum_index = np.argmax(pair_matrix)
             row = maximum_index // image_number
             col = maximum_index % image_number
@@ -171,12 +159,6 @@ class Stitcher:
 
             pair_matrix[row][col] = -1
 
-            # if row not in nodes:
-            #     edges[row] = []#set()
-            # if col not in nodes:
-            #     edges[col] = []#set()
-            # edges[row].append(col)#add(col)
-            # edges[col].append(row)#add(row)
             if row not in nodes:
                 edges[row] = set()
             if col not in nodes:
@@ -187,10 +169,9 @@ class Stitcher:
             nodes.add(row)
             nodes.add(col)
 
-
             # print("all_nodes =", all_nodes)
             # print("nodes =", nodes)
-            print("edges =", edges)
+            # print("edges =", edges)
 
         # print("Is a closed tree?", self.is_all_connected(all_nodes, edges, self.__start))
 
@@ -222,11 +203,6 @@ class Stitcher:
         #     # print(pair_matrix)
         #     # print()
         #     img_index = max_index
-
-        # print(pair_matrix)
-        # print(good_matrix)
-
-        # print(pair_amounts)
         # return most_pair_image
 
     def find_Hs(self):
@@ -268,7 +244,6 @@ class Stitcher:
             self.find_Hs()
 
         shifted_H = np.eye(3)
-        # last_H = np.eye(3)
         img1 = self.__images[self.__start]
         mask1 = self.__image_masks[self.__start]
         shifted_Hs = {}
@@ -277,10 +252,9 @@ class Stitcher:
         for i in range(len(self.__image_pairs)):
             pair = self.__image_pairs[i]
 
-
             index1 = pair['src_index']
             index2 = pair['dst_index']
-            # img1 = self.__images[index1]
+
             img2 = self.__images[index2]
             mask2 = self.__image_masks[index2]
             print("stiching image %d and image %d" % (index1,index2))
@@ -294,21 +268,13 @@ class Stitcher:
             # img1, shifted_H = self.mix_images(img1, img2, H, type=self.__transform_method) # ->
             img1, mask1, shifted_H = self.mix_images(img2, img1, mask2, mask1, H,
                                                      type=self.__transform_method)
-            # last_H = H # ->
-            # last_H = np.dot(last_H, shifted_H) # <-
 
+            #### update cumulative translation/transform
             for k, v in shifted_Hs.items():
                 shifted_Hs[k] = np.dot(H, shifted_H)
-
             if index2 not in shifted_Hs.keys():
                 shifted_Hs[index2] = shifted_H
-                # print("H", H)
             shifted_Hs[index1] = np.dot(H, shifted_H)
-
-
-            # cv2.imshow("new_img", img1)
-            # cv2.waitKey()
-            # cv2.destroyAllWindows()
 
         stiched_image = img1
         return stiched_image
@@ -337,19 +303,12 @@ class Stitcher:
                 new_img, _, _ = stitcher.mix_images(image, new_img, H)
                 # new_img, _ = sticher.mix_images(new_img, image, H)
 
-                # cv2.imshow("new_img", new_img)
-                # cv2.waitKey()
-                # cv2.destroyAllWindows()
-
         return new_img
 
     def mix_images(self, img1, img2, mask1, mask2, H, type="affine"):
         """
         This function will stick img2 to img1
         """
-        # if type=="affine":
-        #     H = np.append(H, [[0,0,1]], axis=0)
-
         h, w = img2.shape[:2]
         pts = np.float32([[0,0],
                           [0,h-1],
@@ -376,7 +335,6 @@ class Stitcher:
 
         shift_H = cv2.getPerspectiveTransform(
             np.float32([ [0,0],[0,10],[10,10],[10,0] ]).reshape(-1,1,2),
-            # np.float32([ [0,0],[0,10],[10,10],[10,0] ]).reshape(-1,1,2),
             np.float32([ [shift_amount[0],shift_amount[1]],
                          [shift_amount[0],shift_amount[1]+10],
                          [shift_amount[0]+10,shift_amount[1]+10],
@@ -387,26 +345,7 @@ class Stitcher:
         new_image_size = tuple(np.ceil(abs_maxs - abs_mins).astype(np.int))
         # print("New image size:", new_image_size)
 
-        # #### wrap images
-        # # if shift_amount[0]>0:
-        # if dst[0][0][0]<0:
-        #     # this_shift_H = np.dot(shift_H, H)
-        #     this_shift_H = shift_H
-        #     if type=="homography":
-        #         new_img2 = cv2.warpPerspective(img2, np.dot(shift_H, H), new_image_size)
-        #         new_mask2 = cv2.warpPerspective(mask2, np.dot(shift_H, H), new_image_size)
-        #     if type=="affine":
-        #         new_img2 = cv2.warpAffine(img2, np.dot(shift_H, H)[:2,:], new_image_size)
-        #         new_mask2 = cv2.warpAffine(mask2, np.dot(shift_H, H)[:2,:], new_image_size)
-        # else:
-        #     this_shift_H = shift_H
-        #     if type=="homography":
-        #         new_img2 = cv2.warpPerspective(img2, np.dot(H, shift_H), new_image_size)
-        #         new_mask2 = cv2.warpPerspective(mask2, np.dot(H, shift_H), new_image_size)
-        #     if type=="affine":
-        #         new_img2 = cv2.warpAffine(img2, np.dot(H, shift_H)[:2,:], new_image_size)
-        #         new_mask2 = cv2.warpAffine(mask2, np.dot(H, shift_H)[:2,:], new_image_size)
-
+        #### wrap images
         this_shift_H = shift_H
         if type=="homography":
             new_img2 = cv2.warpPerspective(img2, np.dot(shift_H, H), new_image_size)
@@ -414,14 +353,6 @@ class Stitcher:
         if type=="affine":
             new_img2 = cv2.warpAffine(img2, np.dot(shift_H, H)[:2,:], new_image_size)
             new_mask2 = cv2.warpAffine(mask2, np.dot(shift_H, H)[:2,:], new_image_size)
-
-        # this_shift_H = shift_H
-        # if type=="homography":
-        #     new_img2 = cv2.warpPerspective(img2, np.dot(H, shift_H), new_image_size)
-        #     new_mask2 = cv2.warpPerspective(mask2, np.dot(H, shift_H), new_image_size)
-        # if type=="affine":
-        #     new_img2 = cv2.warpAffine(img2, np.dot(H, shift_H)[:2,:], new_image_size)
-        #     new_mask2 = cv2.warpAffine(mask2, np.dot(H, shift_H)[:2,:], new_image_size)
 
         new_img1 = cv2.warpPerspective(img1, shift_H, new_image_size)
         new_mask1 = cv2.warpPerspective(mask1, shift_H, new_image_size)
@@ -440,16 +371,13 @@ class Stitcher:
         except ZeroDivisionError:
             new_img = np.maximum(new_img1, new_img2)
 
-        # # minus_cross_mask = ((new_mask1-cross_mask)/255)
-        # # croped_new_img1 = np.zeros_like(new_img1)
-        # # croped_new_img1[:,:,0] = new_img1[:,:,0]*minus_cross_mask
-        # # croped_new_img1[:,:,1] = new_img1[:,:,1]*minus_cross_mask
-        # # croped_new_img1[:,:,2] = new_img1[:,:,2]*minus_cross_mask
-        # # new_img = np.maximum(croped_new_img1, new_img2)
-
-        # new_img = multi_band_blending(new_img1, new_img2, new_image_size[1], flag_half=True)
+        # # maximum pixel value blending
         # new_img = np.maximum(new_img1, new_img2)
+
+        # # average blending
         # new_img = ((new_img1.astype(np.uint16) + new_img2.astype(np.uint16)) // 2).astype(np.uint8)
+
+        # # no blending
         # new_img = new_img2.copy()
         # new_img[shift_amount[1]:h+shift_amount[1], shift_amount[0]:w+shift_amount[0]] = new_img1[shift_amount[1]:h+shift_amount[1], shift_amount[0]:w+shift_amount[0]]
 
@@ -495,106 +423,14 @@ if __name__ == "__main__":
                                  H)
     """
 
-    # stitcher = Stitcher([
-    #     '../data/example-data/flower/1.jpg',
-    #     '../data/example-data/flower/2.jpg',
-    #     '../data/example-data/flower/3.jpg',
-    #     '../data/example-data/flower/4.jpg',
-    #     ],
-    #     mode='Flat',
-    #     )
-
-    # stitcher = Stitcher([
-    #     '../data/example-data/uav/medium01.jpg',
-    #     '../data/example-data/uav/medium02.jpg',
-    #     '../data/example-data/uav/medium03.jpg',
-    #     '../data/example-data/uav/medium04.jpg',
-    #     '../data/example-data/uav/medium05.jpg',
-    #     '../data/example-data/uav/medium06.jpg',
-    #     # '../data/example-data/uav/medium07.jpg',
-    #     # '../data/example-data/uav/medium08.jpg',
-    #     # '../data/example-data/uav/medium09.jpg',
-    #     # '../data/example-data/uav/medium10.jpg',
-    #     # '../data/example-data/uav/medium11.jpg',
-    #     # '../data/example-data/uav/medium12.jpg',
-    #     # '../data/example-data/uav/medium13.jpg',
-    #     # '../data/example-data/uav/medium14.jpg',
-    #     # '../data/example-data/uav/medium15.jpg',
-    #     # '../data/example-data/uav/medium16.jpg',
-    #     # '../data/example-data/uav/medium17.jpg',
-    #     # '../data/example-data/uav/medium18.jpg',
-    #     # '../data/example-data/uav/medium19.jpg',
-    #     ])
-
-    # stitcher = Stitcher([
-    #     '../data/example-data/zijing/medium01.jpg',
-    #     '../data/example-data/zijing/medium04.jpg',
-    #     '../data/example-data/zijing/medium02.jpg',
-    #     '../data/example-data/zijing/medium03.jpg',
-    #     ],
-    #     # mode='planner'
-    #     )
-
-    # stitcher = Stitcher([
-    #     '../data/example-data/zijing/medium01.jpg',
-    #     '../data/example-data/zijing/medium02.jpg',
-    #     '../data/example-data/zijing/medium03.jpg',
-    #     '../data/example-data/zijing/medium04.jpg',
-    #     '../data/example-data/zijing/medium05.jpg',
-    #     '../data/example-data/zijing/medium06.jpg',
-    #     '../data/example-data/zijing/medium07.jpg',
-    #     '../data/example-data/zijing/medium08.jpg',
-    #     '../data/example-data/zijing/medium09.jpg',
-    #     '../data/example-data/zijing/medium10.jpg',
-    #     '../data/example-data/zijing/medium11.jpg',
-    #     '../data/example-data/zijing/medium12.jpg',
-    #     ])
-
     stitcher = Stitcher([
-        '../data/example-data/NSH/medium00.jpg',
-        '../data/example-data/NSH/medium01.jpg',
-        '../data/example-data/NSH/medium02.jpg',
-        '../data/example-data/NSH/medium03.jpg',
-        '../data/example-data/NSH/medium04.jpg',
-        '../data/example-data/NSH/medium05.jpg',
-        '../data/example-data/NSH/medium06.jpg',
-        '../data/example-data/NSH/medium07.jpg',
-        '../data/example-data/NSH/medium08.jpg',
-        '../data/example-data/NSH/medium09.jpg',
-        '../data/example-data/NSH/medium10.jpg',
-        '../data/example-data/NSH/medium11.jpg',
-        '../data/example-data/NSH/medium12.jpg',
-        '../data/example-data/NSH/medium13.jpg',
-        '../data/example-data/NSH/medium14.jpg',
-        '../data/example-data/NSH/medium15.jpg',
-        '../data/example-data/NSH/medium16.jpg',
-        # '../data/example-data/NSH/medium13.jpg',
-        # '../data/example-data/NSH/medium17.jpg',
-        # '../data/example-data/NSH/medium18.jpg',
-        # '../data/example-data/NSH/medium19.jpg',
-        # '../data/example-data/NSH/medium20.jpg',
-        # '../data/example-data/NSH/medium21.jpg',
-        # '../data/example-data/NSH/medium22.jpg',
-        ])
-
-    # stitcher = Stitcher([
-    #     '../data/example-data/CMU2/medium01.jpg',
-    #     '../data/example-data/CMU2/medium04.jpg',
-    #     '../data/example-data/CMU2/medium02.jpg',
-    #     '../data/example-data/CMU2/medium03.jpg',
-    #     ])
-
+        '../data/example-data/flower/1.jpg',
+        '../data/example-data/flower/2.jpg',
+        '../data/example-data/flower/3.jpg',
+        '../data/example-data/flower/4.jpg',
+        ],
+        mode='Flat',
+        )
     new_img = stitcher.stitch_all()
 
-    # new_img = cv2.imread('../data/example-data/uav/medium04.jpg')
-
-    # cv2.imshow("new_img", new_img)
-    # cv2.waitKey()
-    cv2.destroyAllWindows()
     cv2.imwrite("new_img.jpg", new_img)
-
-    # import time
-    # now = time.time()
-    # print(sticher.find_most_pair_two_images())
-    # print(sticher.find_Hs())
-    # print("Time used:", time.time() - now)
