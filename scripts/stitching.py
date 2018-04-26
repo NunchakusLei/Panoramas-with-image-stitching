@@ -123,7 +123,7 @@ class Stitcher:
                 pair_matrix[pre_i, i] = len(good)
                 good_matrix[pre_i][i] = good
 
-        # print(pair_matrix)
+        print(pair_matrix)
         # return
 
         #### find the most pair image relationship
@@ -190,7 +190,7 @@ class Stitcher:
 
             # print("all_nodes =", all_nodes)
             # print("nodes =", nodes)
-            # print("edges =", edges)
+            print("edges =", edges)
 
         # print("Is a closed tree?", self.is_all_connected(all_nodes, edges, self.__start))
 
@@ -296,9 +296,14 @@ class Stitcher:
                                                      type=self.__transform_method)
             # last_H = H # ->
             # last_H = np.dot(last_H, shifted_H) # <-
-            shifted_Hs[index2] = shifted_H
-            # print("H", H)
-            shifted_Hs[index1] = H
+
+            for k, v in shifted_Hs.items():
+                shifted_Hs[k] = np.dot(H, shifted_H)
+
+            if index2 not in shifted_Hs.keys():
+                shifted_Hs[index2] = shifted_H
+                # print("H", H)
+            shifted_Hs[index1] = np.dot(H, shifted_H)
 
 
             # cv2.imshow("new_img", img1)
@@ -490,14 +495,14 @@ if __name__ == "__main__":
                                  H)
     """
 
-    stitcher = Stitcher([
-        '../data/example-data/flower/1.jpg',
-        '../data/example-data/flower/2.jpg',
-        '../data/example-data/flower/3.jpg',
-        '../data/example-data/flower/4.jpg',
-        ],
-        mode='Flat',
-        )
+    # stitcher = Stitcher([
+    #     '../data/example-data/flower/1.jpg',
+    #     '../data/example-data/flower/2.jpg',
+    #     '../data/example-data/flower/3.jpg',
+    #     '../data/example-data/flower/4.jpg',
+    #     ],
+    #     mode='Flat',
+    #     )
 
     # stitcher = Stitcher([
     #     '../data/example-data/uav/medium01.jpg',
@@ -506,15 +511,15 @@ if __name__ == "__main__":
     #     '../data/example-data/uav/medium04.jpg',
     #     '../data/example-data/uav/medium05.jpg',
     #     '../data/example-data/uav/medium06.jpg',
-    #     '../data/example-data/uav/medium07.jpg',
-    #     '../data/example-data/uav/medium08.jpg',
-    #     '../data/example-data/uav/medium09.jpg',
-    #     '../data/example-data/uav/medium10.jpg',
-    #     '../data/example-data/uav/medium11.jpg',
-    #     '../data/example-data/uav/medium12.jpg',
-    #     '../data/example-data/uav/medium13.jpg',
-    #     '../data/example-data/uav/medium14.jpg',
-    #     '../data/example-data/uav/medium15.jpg',
+    #     # '../data/example-data/uav/medium07.jpg',
+    #     # '../data/example-data/uav/medium08.jpg',
+    #     # '../data/example-data/uav/medium09.jpg',
+    #     # '../data/example-data/uav/medium10.jpg',
+    #     # '../data/example-data/uav/medium11.jpg',
+    #     # '../data/example-data/uav/medium12.jpg',
+    #     # '../data/example-data/uav/medium13.jpg',
+    #     # '../data/example-data/uav/medium14.jpg',
+    #     # '../data/example-data/uav/medium15.jpg',
     #     # '../data/example-data/uav/medium16.jpg',
     #     # '../data/example-data/uav/medium17.jpg',
     #     # '../data/example-data/uav/medium18.jpg',
@@ -545,31 +550,32 @@ if __name__ == "__main__":
     #     '../data/example-data/zijing/medium12.jpg',
     #     ])
 
-    # stitcher = Stitcher([
-    #     '../data/example-data/NSH/medium00.jpg',
-    #     '../data/example-data/NSH/medium01.jpg',
-    #     # '../data/example-data/NSH/medium02.jpg',
-    #     # '../data/example-data/NSH/medium03.jpg',
-    #     # '../data/example-data/NSH/medium04.jpg',
-    #     # '../data/example-data/NSH/medium05.jpg',
-    #     # '../data/example-data/NSH/medium06.jpg',
-    #     # '../data/example-data/NSH/medium07.jpg',
-    #     # '../data/example-data/NSH/medium08.jpg',
-    #     # '../data/example-data/NSH/medium09.jpg',
-    #     # '../data/example-data/NSH/medium10.jpg',
-    #     # '../data/example-data/NSH/medium11.jpg',
-    #     # '../data/example-data/NSH/medium12.jpg',
-    #     '../data/example-data/NSH/medium14.jpg',
-    #     '../data/example-data/NSH/medium15.jpg',
-    #     '../data/example-data/NSH/medium16.jpg',
-    #     '../data/example-data/NSH/medium13.jpg',
-    #     # '../data/example-data/NSH/medium17.jpg',
-    #     # '../data/example-data/NSH/medium18.jpg',
-    #     # '../data/example-data/NSH/medium19.jpg',
-    #     # '../data/example-data/NSH/medium20.jpg',
-    #     # '../data/example-data/NSH/medium21.jpg',
-    #     # '../data/example-data/NSH/medium22.jpg',
-    #     ])
+    stitcher = Stitcher([
+        '../data/example-data/NSH/medium00.jpg',
+        '../data/example-data/NSH/medium01.jpg',
+        '../data/example-data/NSH/medium02.jpg',
+        '../data/example-data/NSH/medium03.jpg',
+        '../data/example-data/NSH/medium04.jpg',
+        '../data/example-data/NSH/medium05.jpg',
+        '../data/example-data/NSH/medium06.jpg',
+        '../data/example-data/NSH/medium07.jpg',
+        '../data/example-data/NSH/medium08.jpg',
+        '../data/example-data/NSH/medium09.jpg',
+        '../data/example-data/NSH/medium10.jpg',
+        '../data/example-data/NSH/medium11.jpg',
+        '../data/example-data/NSH/medium12.jpg',
+        '../data/example-data/NSH/medium13.jpg',
+        '../data/example-data/NSH/medium14.jpg',
+        '../data/example-data/NSH/medium15.jpg',
+        '../data/example-data/NSH/medium16.jpg',
+        # '../data/example-data/NSH/medium13.jpg',
+        # '../data/example-data/NSH/medium17.jpg',
+        # '../data/example-data/NSH/medium18.jpg',
+        # '../data/example-data/NSH/medium19.jpg',
+        # '../data/example-data/NSH/medium20.jpg',
+        # '../data/example-data/NSH/medium21.jpg',
+        # '../data/example-data/NSH/medium22.jpg',
+        ])
 
     # stitcher = Stitcher([
     #     '../data/example-data/CMU2/medium01.jpg',
